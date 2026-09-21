@@ -1,408 +1,771 @@
-<!DOCTYPE html>
-<html lang="pt-BR" class="scroll-smooth">
+<!DOCTYPE htmlp>
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barbearia Don Juan</title>
-    
-    <!-- Tailwind CSS -->
+    <title>SilkVector Pro - Quantização e Vetorização de Imagens em Camadas</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     
-    <!-- Configuração de Cores Tailwind -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        stone: {
-                            950: '#0c0a09',
-                            900: '#1c1917',
-                            800: '#292524',
-                            400: '#a8a29e',
-                            200: '#e7e5e4',
-                            100: '#f5f5f4',
-                        },
-                        amber: {
-                            500: '#f59e0b',
-                            600: '#d97706',
-                            700: '#b45309',
-                        }
-                    },
-                    fontFamily: {
-                        'old-school': ['Rye', 'serif'],
-                        'body': ['Inter', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Rye&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-
     <style>
-        /* Textura de fundo */
-        .bg-texture {
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+        :root {
+            --bg-base: #0f172a;
+            --panel-bg: #1e293b;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-base);
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+        .upload-zone {
+            border: 2px dashed #475569;
+            transition: all 0.3s ease;
+        }
+        .upload-zone.dragover {
+            border-color: var(--accent);
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        .svg-container svg {
+            width: 100%;
+            height: auto;
+            max-height: 60vh;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
+            border-radius: 8px;
         }
         
-        /* Animação do botão flutuante */
-        @keyframes bounce-slow {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--panel-bg); }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        .loader-spin {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-left-color: var(--accent);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
         }
-        .animate-bounce-slow {
-            animation: bounce-slow 2s infinite;
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .layer-item {
+            transition: opacity 0.2s, background-color 0.2s, transform 0.2s;
         }
+        .layer-item.disabled-layer { opacity: 0.5; }
+
+        /* Custom Checkbox for Layer Selection */
+        .layer-checkbox {
+            appearance: none;
+            background-color: #334155;
+            margin: 0;
+            font: inherit;
+            color: currentColor;
+            width: 1.15em;
+            height: 1.15em;
+            border: 1px solid #64748b;
+            border-radius: 0.25em;
+            display: grid;
+            place-content: center;
+            cursor: pointer;
+        }
+        .layer-checkbox::before {
+            content: "";
+            width: 0.65em;
+            height: 0.65em;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em var(--accent);
+            background-color: transform-origin: bottom left;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+        .layer-checkbox:checked::before { transform: scale(1); }
+        .layer-checkbox:checked { border-color: var(--accent); }
     </style>
 </head>
-<body class="bg-stone-950 text-stone-200 font-body min-h-screen selection:bg-amber-700 selection:text-white">
+<body class="p-4 md:p-8 flex flex-col">
 
-    <!-- HEADER -->
-    <header id="main-header" class="fixed w-full z-50 transition-all duration-300 py-5 bg-transparent">
-        <div class="container mx-auto px-6 flex justify-between items-center">
-            <!-- Logo -->
-            <div class="flex items-center gap-2 cursor-pointer" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
-                <div class="bg-amber-700 p-1 rounded-sm text-stone-950">
-                    <i data-lucide="scissors" class="w-6 h-6"></i>
-                </div>
-                <h1 class="font-old-school text-xl md:text-2xl text-stone-100 tracking-wider">
-                    DON JUAN
-                </h1>
-            </div>
-
-            <!-- Desktop Nav -->
-            <nav class="hidden md:flex items-center gap-8 font-medium text-sm tracking-wide">
-                <a href="#servicos" class="hover:text-amber-500 transition-colors">SERVIÇOS</a>
-                <a href="#diferenciais" class="hover:text-amber-500 transition-colors">A BARBEARIA</a>
-                <a href="#reviews" class="hover:text-amber-500 transition-colors">AVALIAÇÕES</a>
-                <a href="https://wa.me/5511999999999" class="bg-amber-700 hover:bg-amber-600 text-stone-950 px-5 py-2 rounded font-bold transition-colors">
-                    AGENDAR HORÁRIO
-                </a>
-            </nav>
-
-            <!-- Mobile Menu Button -->
-            <button class="md:hidden text-stone-100" id="menu-btn">
-                <i data-lucide="menu" id="menu-icon" class="w-7 h-7"></i>
-            </button>
-        </div>
-
-        <!-- Mobile Nav Overlay (Hidden by default) -->
-        <div id="mobile-menu" class="hidden md:hidden absolute top-full left-0 w-full bg-stone-900 border-t border-stone-800 shadow-2xl py-6 flex flex-col items-center gap-6">
-            <a href="#servicos" class="text-lg hover:text-amber-500 mobile-link">SERVIÇOS</a>
-            <a href="#diferenciais" class="text-lg hover:text-amber-500 mobile-link">A BARBEARIA</a>
-            <a href="#reviews" class="text-lg hover:text-amber-500 mobile-link">AVALIAÇÕES</a>
-            <a href="https://wa.me/5511999999999" class="bg-amber-700 text-stone-950 px-8 py-3 rounded font-bold w-3/4 text-center">
-                AGENDAR AGORA
-            </a>
+    <header class="mb-8 flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+                SilkVector Pro
+            </h1>
+            <p class="text-slate-400 text-sm mt-1">Transforme, organize e mescle imagens em vetores SVG estratificados.</p>
         </div>
     </header>
 
-    <!-- HERO SECTION -->
-    <section class="relative h-screen flex items-center justify-center overflow-hidden">
-        <!-- Imagem de Fundo -->
-        <div class="absolute inset-0 z-0">
-            <img 
-                src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=2074&auto=format&fit=crop" 
-                alt="Barbeiro trabalhando" 
-                class="w-full h-full object-cover opacity-40 grayscale"
-            >
-            <div class="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/60 to-transparent"></div>
-        </div>
-
-        <div class="relative z-10 container mx-auto px-6 text-center mt-10">
-            <div class="inline-block border-b-2 border-amber-600 pb-1 mb-4">
-                <span class="text-amber-500 font-bold tracking-widest text-sm uppercase">Desde 2018</span>
-            </div>
-            <h2 class="font-old-school text-5xl md:text-7xl lg:text-8xl text-stone-100 mb-6 leading-tight">
-                Corte Clássico.<br/>
-                <span class="text-stone-400">Atitude Moderna.</span>
-            </h2>
-            <p class="font-body text-stone-300 text-lg md:text-xl max-w-2xl mx-auto mb-10">
-                Mais que um corte, um ritual. Recupere sua confiança com quem entende do assunto. Sem conversa fiada, apenas resultados.
-            </p>
-            <div class="flex flex-col sm:flex-row justify-center gap-4">
-                <a href="https://wa.me/5511999999999" class="bg-amber-700 hover:bg-amber-600 text-stone-950 font-bold text-lg px-8 py-4 rounded transition-transform hover:scale-105 shadow-lg shadow-amber-900/20 flex items-center justify-center gap-2">
-                    <i data-lucide="calendar" class="w-5 h-5"></i>
-                    AGENDAR HORÁRIO
-                </a>
-                <a href="#servicos" class="border border-stone-600 hover:border-stone-400 text-stone-300 hover:text-white font-medium text-lg px-8 py-4 rounded transition-colors flex items-center justify-center">
-                    VER PREÇOS
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- DIFERENCIAIS -->
-    <section id="diferenciais" class="py-20 bg-stone-900 bg-texture">
-        <div class="container mx-auto px-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                <!-- Card 1 -->
-                <div class="bg-stone-800/40 p-6 rounded-lg border border-stone-800 hover:border-amber-900 transition-colors">
-                    <div class="mb-4 text-amber-500"><i data-lucide="scissors" class="w-8 h-8"></i></div>
-                    <h3 class="text-xl font-bold text-stone-200 mb-2">Profissionais Experientes</h3>
-                    <p class="text-stone-400 text-sm leading-relaxed">Nossa equipe domina tanto a tesoura clássica quanto o degradê moderno.</p>
-                </div>
-                <!-- Card 2 -->
-                <div class="bg-stone-800/40 p-6 rounded-lg border border-stone-800 hover:border-amber-900 transition-colors">
-                    <div class="mb-4 text-amber-500"><i data-lucide="clock" class="w-8 h-8"></i></div>
-                    <h3 class="text-xl font-bold text-stone-200 mb-2">Hora Marcada</h3>
-                    <p class="text-stone-400 text-sm leading-relaxed">Respeitamos o seu tempo. Atendimento pontual para não atrasar seu dia.</p>
-                </div>
-                <!-- Card 3 -->
-                <div class="bg-stone-800/40 p-6 rounded-lg border border-stone-800 hover:border-amber-900 transition-colors">
-                    <div class="mb-4 text-amber-500 font-bold text-2xl">❄️</div>
-                    <h3 class="text-xl font-bold text-stone-200 mb-2">Ambiente Climatizado</h3>
-                    <p class="text-stone-400 text-sm leading-relaxed">Lugar limpo, fresco e confortável. Perfeito para relaxar enquanto corta.</p>
-                </div>
-                <!-- Card 4 -->
-                <div class="bg-stone-800/40 p-6 rounded-lg border border-stone-800 hover:border-amber-900 transition-colors">
-                    <div class="mb-4 text-amber-500 font-bold text-2xl">🍺</div>
-                    <h3 class="text-xl font-bold text-stone-200 mb-2">Primeira Cortesia</h3>
-                    <p class="text-stone-400 text-sm leading-relaxed">Beba uma cerveja gelada ou um café expresso enquanto cuidamos do visual.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- SERVIÇOS E PREÇOS -->
-    <section id="servicos" class="py-24 bg-stone-950 relative">
-        <div class="container mx-auto px-6 max-w-4xl">
-            <div class="text-center mb-16">
-                <h3 class="font-old-school text-4xl text-stone-100 mb-4">Nossos Serviços</h3>
-                <div class="w-24 h-1 bg-amber-700 mx-auto rounded"></div>
+    <main class="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Painel Esquerdo: Controles -->
+        <section class="col-span-1 lg:col-span-4 flex flex-col gap-6">
+            
+            <!-- Upload Box -->
+            <div id="uploadBox" class="upload-zone rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer bg-slate-800/50 hover:bg-slate-800">
+                <svg class="w-12 h-12 text-slate-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                <h3 class="text-lg font-semibold text-slate-200">Arraste uma imagem ou clique</h3>
+                <p class="text-slate-400 text-xs mt-2">JPG, PNG (Máx 5MB recomendado)</p>
+                <input type="file" id="fileInput" class="hidden" accept="image/png, image/jpeg">
             </div>
 
-            <div class="space-y-6">
-                <!-- Serviço 1 -->
-                <div class="group flex flex-col md:flex-row justify-between items-baseline border-b border-stone-800 pb-6 hover:border-amber-900/50 transition-colors">
-                    <div class="mb-2 md:mb-0">
-                        <h4 class="font-bold text-xl text-stone-200 group-hover:text-amber-500 transition-colors">Corte Masculino</h4>
-                        <p class="text-stone-500 text-sm mt-1">Tesoura ou máquina. Lavagem inclusa.</p>
+            <!-- Preview Original -->
+            <div id="originalPreviewContainer" class="hidden flex flex-col gap-2">
+                <span class="text-sm font-semibold text-slate-400">Imagem Original</span>
+                <img id="originalImage" class="rounded-lg object-cover max-h-48 border border-slate-700 w-full" />
+            </div>
+
+            <!-- Configurações e Ações -->
+            <div id="controlsPanel" class="hidden bg-slate-800/80 rounded-xl p-6 flex-col gap-5 border border-slate-700 shadow-xl">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-sm font-semibold text-slate-300">Número de Cores (Paleta)</label>
+                        <span id="colorValue" class="text-emerald-400 font-bold bg-emerald-400/10 px-2 py-1 rounded text-xs">8</span>
                     </div>
-                    <div class="font-old-school text-2xl text-amber-600">R$ 50,00</div>
+                    <input type="range" id="colorSlider" min="3" max="12" value="8" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
                 </div>
-                <!-- Serviço 2 -->
-                <div class="group flex flex-col md:flex-row justify-between items-baseline border-b border-stone-800 pb-6 hover:border-amber-900/50 transition-colors">
-                    <div class="mb-2 md:mb-0">
-                        <h4 class="font-bold text-xl text-stone-200 group-hover:text-amber-500 transition-colors">Barba Completa</h4>
-                        <p class="text-stone-500 text-sm mt-1">Modelagem, toalha quente e navalha.</p>
+
+                <!-- Nova Opção: Suavização -->
+                <label class="flex items-center gap-3 cursor-pointer group bg-slate-900/50 p-3 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors">
+                    <div class="relative flex items-center justify-center">
+                        <input type="checkbox" id="smoothToggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-600 rounded-full peer peer-checked:bg-blue-500 transition-colors"></div>
+                        <div class="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-5 shadow-sm"></div>
                     </div>
-                    <div class="font-old-school text-2xl text-amber-600">R$ 40,00</div>
+                    <div class="flex flex-col">
+                        <span class="text-sm font-medium text-slate-200">Suavizar Traços</span>
+                        <span class="text-xs text-slate-400">Transforma bordas serrilhadas em curvas orgânicas.</span>
+                    </div>
+                </label>
+
+                <button id="processBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 px-4 rounded-lg shadow-lg shadow-blue-500/30 transition-all flex justify-center items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                    Processar e Vetorizar
+                </button>
+            </div>
+
+            <!-- Camadas -->
+            <div id="layersPanel" class="hidden bg-slate-800/80 rounded-xl border border-slate-700 shadow-xl overflow-hidden flex flex-col flex-grow min-h-[40vh] max-h-[50vh]">
+                <div class="p-4 border-b border-slate-700 bg-slate-800 flex justify-between items-center">
+                    <h3 class="text-sm font-semibold text-slate-200">Gerenciador de Camadas</h3>
+                    <button id="mergeBtn" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white py-1 px-3 rounded shadow transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        Mesclar Seleção
+                    </button>
                 </div>
-                <!-- Serviço 3 -->
-                <div class="group flex flex-col md:flex-row justify-between items-baseline border-b border-stone-800 pb-6 hover:border-amber-900/50 transition-colors">
-                    <div class="mb-2 md:mb-0">
-                        <h4 class="font-bold text-xl text-stone-200 group-hover:text-amber-500 transition-colors">Combo Don Juan</h4>
-                        <p class="text-stone-500 text-sm mt-1">Corte + Barba (O mais pedido).</p>
-                    </div>
-                    <div class="font-old-school text-2xl text-amber-600">R$ 80,00</div>
+                <!-- Indicação de Ordem Visual -->
+                <div class="bg-slate-900/50 px-4 py-1 flex justify-between text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                    <span>Frente (Topo)</span>
                 </div>
-                <!-- Serviço 4 -->
-                <div class="group flex flex-col md:flex-row justify-between items-baseline border-b border-stone-800 pb-6 hover:border-amber-900/50 transition-colors">
-                    <div class="mb-2 md:mb-0">
-                        <h4 class="font-bold text-xl text-stone-200 group-hover:text-amber-500 transition-colors">Acabamento (Pezinho)</h4>
-                        <p class="text-stone-500 text-sm mt-1">Limpeza do contorno e nuca.</p>
-                    </div>
-                    <div class="font-old-school text-2xl text-amber-600">R$ 20,00</div>
+                <div id="layersList" class="p-2 overflow-y-auto flex-grow flex flex-col gap-2">
+                    <!-- Itens inseridos por JS -->
                 </div>
-                <!-- Serviço 5 -->
-                <div class="group flex flex-col md:flex-row justify-between items-baseline border-b border-stone-800 pb-6 hover:border-amber-900/50 transition-colors">
-                    <div class="mb-2 md:mb-0">
-                        <h4 class="font-bold text-xl text-stone-200 group-hover:text-amber-500 transition-colors">Camuflagem de Brancos</h4>
-                        <p class="text-stone-500 text-sm mt-1">Pigmentação natural para cabelo ou barba.</p>
+                <div class="bg-slate-900/50 px-4 py-1 flex justify-between text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                    <span>Fundo (Base)</span>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Painel Direito: Visualização e Exportação -->
+        <section class="col-span-1 lg:col-span-8 flex flex-col">
+            
+            <div id="resultCard" class="hidden flex-grow bg-slate-800/40 rounded-xl border border-slate-700 p-6 flex-col items-center justify-center relative overflow-hidden min-h-[500px]">
+                
+                <!-- Loading State -->
+                <div id="loadingOverlay" class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm z-30 flex flex-col items-center justify-center hidden">
+                    <div class="loader-spin mb-4"></div>
+                    <p id="loadingText" class="text-blue-400 font-semibold animate-pulse">Analisando pixels...</p>
+                </div>
+
+                <!-- Canvas Wrapper -->
+                <div id="svgWrapper" class="svg-container w-full flex items-center justify-center relative z-0">
+                    <!-- SVG será injetado aqui -->
+                </div>
+
+                <!-- Export Area (Bottom Overlay) -->
+                <div class="absolute bottom-6 right-6 z-20 flex flex-col sm:flex-row gap-3 items-end sm:items-center bg-slate-900/80 p-3 rounded-xl border border-slate-700 backdrop-blur-sm shadow-xl">
+                    <div class="flex flex-col">
+                        <label class="text-[10px] uppercase font-bold text-slate-400 mb-1 ml-1">Nome do Arquivo</label>
+                        <input type="text" id="filenameInput" placeholder="meu-vetor" class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-3 py-2 outline-none">
                     </div>
-                    <div class="font-old-school text-2xl text-amber-600">R$ 45,00</div>
+                    <button id="downloadBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 px-6 rounded-lg shadow-lg shadow-emerald-500/30 transition-all flex items-center gap-2 h-[42px] mt-4 sm:mt-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Baixar SVG
+                    </button>
                 </div>
             </div>
             
-            <div class="mt-12 text-center">
-                <p class="text-stone-400 mb-6">Aceitamos Cartão, PIX e Dinheiro.</p>
-                <a href="https://wa.me/5511999999999" class="inline-block border-2 border-amber-700 text-amber-500 hover:bg-amber-700 hover:text-stone-950 font-bold py-3 px-10 rounded transition-all">
-                    AGENDAR AGORA
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- PROVA SOCIAL (Reviews) -->
-    <section id="reviews" class="py-20 bg-stone-900 bg-texture">
-        <div class="container mx-auto px-6">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                <!-- Fotos -->
-                <div class="grid grid-cols-2 gap-4">
-                    <img src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=2070&auto=format&fit=crop" alt="Corte Cabelo" class="rounded-lg shadow-xl hover:opacity-90 transition-opacity w-full h-48 object-cover">
-                    <img src="https://images.unsplash.com/photo-1599351431202-1e0f0137899a?q=80&w=1976&auto=format&fit=crop" alt="Barba Feita" class="rounded-lg shadow-xl hover:opacity-90 transition-opacity w-full h-48 object-cover translate-y-8">
-                    <img src="https://images.unsplash.com/photo-1532710093739-9470acff878f?q=80&w=2070&auto=format&fit=crop" alt="Navalha" class="rounded-lg shadow-xl hover:opacity-90 transition-opacity w-full h-48 object-cover">
-                    
-                    <div class="bg-stone-800 rounded-lg flex items-center justify-center h-48 translate-y-8 border border-stone-700">
-                        <div class="text-center p-4">
-                            <p class="font-old-school text-4xl text-amber-600 mb-2">4.5</p>
-                            <div class="flex justify-center gap-1 text-amber-500 mb-2">
-                                <i data-lucide="star" class="w-4 h-4 fill-current"></i>
-                                <i data-lucide="star" class="w-4 h-4 fill-current"></i>
-                                <i data-lucide="star" class="w-4 h-4 fill-current"></i>
-                                <i data-lucide="star" class="w-4 h-4 fill-current"></i>
-                                <i data-lucide="star" class="w-4 h-4 fill-current text-amber-900"></i>
-                            </div>
-                            <p class="text-stone-400 text-sm">no Google Reviews</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Texto Reviews -->
-                <div>
-                    <h3 class="font-old-school text-3xl text-stone-100 mb-8">O que falam da Don Juan</h3>
-                    <div class="space-y-6">
-                        <!-- Review 1 -->
-                        <div class="bg-stone-800/50 p-6 rounded border-l-4 border-amber-700">
-                            <div class="flex gap-1 text-amber-500 mb-2">
-                                <i data-lucide="star" class="w-3 h-3 fill-current"></i>
-                                <i data-lucide="star" class="w-3 h-3 fill-current"></i>
-                                <i data-lucide="star" class="w-3 h-3 fill-current"></i>
-                                <i data-lucide="star" class="w-3 h-3 fill-current"></i>
-                                <i data-lucide="star" class="w-3 h-3 fill-current"></i>
-                            </div>
-                            <p class="text-stone-300 italic mb-4">"Ambiente sensacional. O corte ficou exatamente como eu queria. Sem enrolação."</p>
-                            <p class="text-stone-100 font-bold text-sm">- Ricardo Silva</p>
-                        </div>
-                        <!-- Review 2 -->
-                        <div class="bg-stone-800/50 p-6 rounded border-l-4 border-amber-700">
-                            <div class="flex gap-1 text-amber-500 mb-2">
-                                <i data-lucide="star" class="w-3 h-3 fill-current"></i>
-                                <i data-lucide="star" class="w-3 h-3 fill-current"></i>
-                                <i data-lucide="star" class="w-3 h-3 fill-current"></i>
-                                <i data-lucide="star" class="w-3 h-3 fill-current"></i>
-                                <i data-lucide="star" class="w-3 h-3 fill-current"></i>
-                            </div>
-                            <p class="text-stone-300 italic mb-4">"Barbeiros experientes. A toalha quente na barba faz toda a diferença."</p>
-                            <p class="text-stone-100 font-bold text-sm">- André Matos</p>
-                        </div>
-                        <!-- Review 3 -->
-                        <div class="bg-stone-800/50 p-6 rounded border-l-4 border-amber-700">
-                            <div class="flex gap-1 text-amber-500 mb-2">
-                                <i data-lucide="star" class="w-3 h-3 fill-current"></i>
-                                <i data-lucide="star" class="w-3 h-3 fill-current"></i>
-                                <i data-lucide="star" class="w-3 h-3 fill-current"></i>
-                                <i data-lucide="star" class="w-3 h-3 fill-current"></i>
-                                <i data-lucide="star" class="w-3 h-3 fill-current"></i>
-                            </div>
-                            <p class="text-stone-300 italic mb-4">"Preço justo pelo serviço entregue. Virei cliente fiel."</p>
-                            <p class="text-stone-100 font-bold text-sm">- Felipe Costa</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- CTA FINAL -->
-    <section class="py-20 bg-stone-950 border-t border-stone-900">
-        <div class="container mx-auto px-6 text-center">
-            <h2 class="font-old-school text-4xl text-white mb-6">Pronto para melhorar o visual?</h2>
-            <p class="text-stone-400 mb-10 max-w-xl mx-auto">
-                Não deixe para depois. Os horários da semana costumam preencher rápido. 
-                Garanta o seu slot agora mesmo.
-            </p>
-            <a href="https://wa.me/5511999999999" class="bg-green-700 hover:bg-green-600 text-white font-bold text-xl px-10 py-4 rounded-full transition-all shadow-lg hover:shadow-green-900/50 inline-flex items-center gap-3">
-                <i data-lucide="phone" class="w-6 h-6"></i>
-                AGENDAR VIA WHATSAPP
-            </a>
-        </div>
-    </section>
-
-    <!-- FOOTER -->
-    <footer class="bg-stone-900 border-t border-stone-800 py-12 text-sm text-stone-400">
-        <div class="container mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
-            <!-- Brand -->
-            <div>
-                <div class="flex items-center justify-center md:justify-start gap-2 mb-4">
-                    <i data-lucide="scissors" class="text-amber-600 w-5 h-5"></i>
-                    <span class="font-old-school text-lg text-stone-200">BARBEARIA DON JUAN</span>
-                </div>
-                <p class="mb-4">Estilo, tradição e respeito. O lugar do homem moderno.</p>
-                <div class="flex justify-center md:justify-start gap-4">
-                    <a href="#" class="hover:text-amber-500"><i data-lucide="instagram" class="w-5 h-5"></i></a>
-                    <a href="#" class="hover:text-amber-500"><i data-lucide="facebook" class="w-5 h-5"></i></a>
-                </div>
+            <div id="emptyState" class="flex-grow flex flex-col items-center justify-center border-2 border-dashed border-slate-700 rounded-xl text-slate-500 bg-slate-800/20">
+                <svg class="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <p>Nenhuma imagem processada.</p>
             </div>
 
-            <!-- Localização -->
-            <div class="flex flex-col items-center md:items-start">
-                <h4 class="text-stone-100 font-bold mb-4 uppercase tracking-wider">Onde Estamos</h4>
-                <div class="flex items-start gap-2 mb-2">
-                    <i data-lucide="map-pin" class="text-amber-600 w-4 h-4 mt-1 shrink-0"></i>
-                    <p>Rua da Barbearia, 123<br/>Centro - São Paulo/SP</p>
-                </div>
+        </section>
+    </main>
+
+    <!-- Custom Alert Box -->
+    <div id="alertBox" class="fixed top-5 right-5 max-w-sm w-full bg-red-900/90 border border-red-500 text-white p-4 rounded-lg shadow-2xl transform translate-x-[150%] transition-transform duration-300 z-50 flex gap-3">
+        <svg class="w-6 h-6 flex-shrink-0 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <span id="alertMessage" class="text-sm">Erro!</span>
+    </div>
+
+    <!-- Merge Color Picker Modal -->
+    <div id="mergeModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl p-6 max-w-md w-full mx-4 transform scale-95 transition-transform duration-300" id="mergeModalContent">
+            <h2 class="text-xl font-bold text-white mb-2">Escolha a Cor Resultante</h2>
+            <p class="text-slate-400 text-sm mb-6">As camadas selecionadas serão combinadas. Qual cor a nova camada deve herdar?</p>
+            
+            <div id="mergeColorOptions" class="flex flex-wrap gap-4 mb-8 justify-center">
+                <!-- Color Options dynamically injected here -->
             </div>
 
-            <!-- Horários -->
-            <div class="flex flex-col items-center md:items-start">
-                <h4 class="text-stone-100 font-bold mb-4 uppercase tracking-wider">Horários</h4>
-                <p class="mb-1"><span class="text-stone-500">Seg - Sex:</span> 09:00 - 20:00</p>
-                <p class="mb-1"><span class="text-stone-500">Sábado:</span> 09:00 - 18:00</p>
-                <p><span class="text-stone-500">Domingo:</span> Fechado</p>
+            <div class="flex justify-end gap-3">
+                <button id="cancelMergeBtn" class="px-4 py-2 rounded-lg text-slate-300 bg-slate-700 hover:bg-slate-600 transition-colors font-medium">Cancelar</button>
+                <button id="confirmMergeBtn" class="px-4 py-2 rounded-lg text-white bg-indigo-600 hover:bg-indigo-500 transition-colors font-medium disabled:opacity-50" disabled>Confirmar Mesclagem</button>
             </div>
         </div>
-        <div class="border-t border-stone-800 mt-12 pt-8 text-center text-xs text-stone-600">
-            &copy; <script>document.write(new Date().getFullYear())</script> Barbearia Don Juan. Todos os direitos reservados.
-        </div>
-    </footer>
+    </div>
 
-    <!-- FLOATING WHATSAPP -->
-    <a href="https://wa.me/5511999999999" class="fixed bottom-6 right-6 bg-green-600 hover:bg-green-500 text-white p-4 rounded-full shadow-2xl z-50 transition-transform hover:scale-110 flex items-center justify-center animate-bounce-slow" aria-label="Agendar via WhatsApp">
-        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-    </a>
-
-    <!-- SCRIPTS (Logic) -->
     <script>
-        // Inicializar ícones Lucide
-        lucide.createIcons();
+        const State = {
+            imageSrc: null,
+            imageData: null,
+            svgElement: null,
+            isProcessing: false,
+            layers: [], 
+            selectedColorForMerge: null
+        };
 
-        // Lógica do Menu Mobile
-        const menuBtn = document.getElementById('menu-btn');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const menuIcon = document.getElementById('menu-icon');
-        const mobileLinks = document.querySelectorAll('.mobile-link');
-        let isMenuOpen = false;
+        const D = {
+            uploadBox: document.getElementById('uploadBox'),
+            fileInput: document.getElementById('fileInput'),
+            originalPreviewContainer: document.getElementById('originalPreviewContainer'),
+            originalImage: document.getElementById('originalImage'),
+            controlsPanel: document.getElementById('controlsPanel'),
+            colorSlider: document.getElementById('colorSlider'),
+            colorValue: document.getElementById('colorValue'),
+            smoothToggle: document.getElementById('smoothToggle'),
+            processBtn: document.getElementById('processBtn'),
+            layersPanel: document.getElementById('layersPanel'),
+            layersList: document.getElementById('layersList'),
+            mergeBtn: document.getElementById('mergeBtn'),
+            resultCard: document.getElementById('resultCard'),
+            emptyState: document.getElementById('emptyState'),
+            loadingOverlay: document.getElementById('loadingOverlay'),
+            loadingText: document.getElementById('loadingText'),
+            svgWrapper: document.getElementById('svgWrapper'),
+            filenameInput: document.getElementById('filenameInput'),
+            downloadBtn: document.getElementById('downloadBtn'),
+            alertBox: document.getElementById('alertBox'),
+            alertMessage: document.getElementById('alertMessage'),
+            
+            mergeModal: document.getElementById('mergeModal'),
+            mergeModalContent: document.getElementById('mergeModalContent'),
+            mergeColorOptions: document.getElementById('mergeColorOptions'),
+            cancelMergeBtn: document.getElementById('cancelMergeBtn'),
+            confirmMergeBtn: document.getElementById('confirmMergeBtn')
+        };
 
-        menuBtn.addEventListener('click', () => {
-            isMenuOpen = !isMenuOpen;
-            if (isMenuOpen) {
-                mobileMenu.classList.remove('hidden');
-                menuIcon.setAttribute('data-lucide', 'x');
-            } else {
-                mobileMenu.classList.add('hidden');
-                menuIcon.setAttribute('data-lucide', 'menu');
+        let alertTimeout;
+        function showAlert(msg, type = 'error') {
+            clearTimeout(alertTimeout);
+            D.alertMessage.textContent = msg;
+            D.alertBox.className = `fixed top-5 right-5 max-w-sm w-full p-4 rounded-lg shadow-2xl transform transition-transform duration-300 z-[100] flex gap-3 translate-x-0 ${type === 'error' ? 'bg-red-900/90 border border-red-500 text-white' : 'bg-emerald-900/90 border border-emerald-500 text-white'}`;
+            alertTimeout = setTimeout(() => { 
+                D.alertBox.style.transform = 'translateX(150%)'; 
+                setTimeout(()=>{ D.alertBox.removeAttribute('style'); }, 300); 
+            }, 4000);
+        }
+
+        function loadDependencies() {
+            return new Promise((resolve, reject) => {
+                if (window.ImageTracer) { resolve(); return; }
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.min.js';
+                script.onload = resolve;
+                script.onerror = () => {
+                    const fallback = document.createElement('script');
+                    fallback.src = 'https://unpkg.com/imagetracerjs@1.2.6/imagetracer_v1.2.6.js';
+                    fallback.onload = resolve;
+                    fallback.onerror = () => {
+                        showAlert('Falha ao carregar motor vetorial. Verifique a internet.');
+                        reject();
+                    };
+                    document.head.appendChild(fallback);
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+        function extractCustomPalette(imgData, numColors) {
+            const data = imgData.data;
+            const colorMap = new Map();
+            
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i+3] < 128) continue;
+                // Agrupamento leve para acumular tons vizinhos
+                const r = data[i] & 248;
+                const g = data[i+1] & 248;
+                const b = data[i+2] & 248;
+                const key = (r << 16) | (g << 8) | b;
+                colorMap.set(key, (colorMap.get(key) || 0) + 1);
             }
-            lucide.createIcons(); // Re-render icons after change
-        });
 
-        // Fechar menu ao clicar em um link
-        mobileLinks.forEach(link => {
-            link.addEventListener('click', () => {
-                isMenuOpen = false;
-                mobileMenu.classList.add('hidden');
-                menuIcon.setAttribute('data-lucide', 'menu');
-                lucide.createIcons();
+            const sortedColors = Array.from(colorMap.entries()).sort((a, b) => b[1] - a[1]);
+            const palette = [];
+            
+            // Passo 1: Capturar as cores mais frequentes com bom contraste entre si
+            let distanceThreshold = 60;
+            while (palette.length < numColors && distanceThreshold >= 0) {
+                for (let i = 0; i < sortedColors.length; i++) {
+                    if (palette.length >= numColors) break;
+                    const colorKey = sortedColors[i][0];
+                    const r = (colorKey >> 16) & 255;
+                    const g = (colorKey >> 8) & 255;
+                    const b = colorKey & 255;
+                    
+                    let isDistinct = true;
+                    for (const p of palette) {
+                        const dr = p.r - r;
+                        const dg = p.g - g;
+                        const db = p.b - b;
+                        if (Math.sqrt(dr*dr + dg*dg + db*db) < distanceThreshold) {
+                            isDistinct = false;
+                            break;
+                        }
+                    }
+                    if (isDistinct) {
+                        palette.push({r, g, b, a: 255});
+                    }
+                }
+                distanceThreshold -= 10;
+            }
+
+            // Passo 2: Forçar inclusão de cores com alta saturação (como batom vermelho/rosa) que costumam ser ignoradas
+            for (let i = 0; i < sortedColors.length && palette.length < numColors; i++) {
+                const colorKey = sortedColors[i][0];
+                const r = (colorKey >> 16) & 255;
+                const g = (colorKey >> 8) & 255;
+                const b = (colorKey >> 2) & 255; // b
+                
+                // Cálculo de saturação simples
+                const max = Math.max(r, g, b), min = Math.min(r, g, b);
+                const saturation = max === 0 ? 0 : (max - min) / max;
+                
+                // Se for uma cor bem saturada (como vermelho da boca) e ainda não estiver na paleta, insere à força
+                if (saturation > 0.25 && !palette.some(p => Math.abs(p.r - r) < 20 && Math.abs(p.g - g) < 20 && Math.abs(p.b - b) < 20)) {
+                    palette.push({r, g, b, a: 255});
+                }
+            }
+
+            // Preenchimento final caso sobre espaço
+            for (let i = 0; i < sortedColors.length && palette.length < numColors; i++) {
+                const colorKey = sortedColors[i][0];
+                const r = (colorKey >> 16) & 255;
+                const g = (colorKey >> 8) & 255;
+                const b = colorKey & 255;
+                if (!palette.some(p => p.r === r && p.g === g && p.b === b)) {
+                    palette.push({r, g, b, a: 255});
+                }
+            }
+
+            return palette;
+        }
+
+        function renderLayersUI() {
+            D.layersList.innerHTML = '';
+            
+            for (let i = State.layers.length - 1; i >= 0; i--) {
+                const layer = State.layers[i];
+                
+                const div = document.createElement('div');
+                div.className = `layer-item flex items-center justify-between p-3 rounded-lg border bg-slate-700/40 hover:bg-slate-700/80 transition-colors ${!layer.visible ? 'disabled-layer border-slate-700' : 'border-slate-600'} ${layer.selected ? 'ring-1 ring-blue-500 bg-slate-700/80' : ''}`;
+                
+                const isBase = (i === 0);
+                const layerTypeTag = isBase ? '<span class="text-[9px] bg-slate-800 text-slate-400 px-1 py-0.5 rounded ml-2 uppercase">Base</span>' : '';
+
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" class="layer-checkbox flex-shrink-0" ${layer.selected ? 'checked' : ''} data-index="${i}" title="Selecionar para mesclar">
+                        <span class="w-6 h-6 rounded-full border-2 border-white/20 shadow-inner block flex-shrink-0" style="background-color: ${layer.hex}"></span>
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium text-slate-200 flex items-center">${layer.name} ${layerTypeTag}</span>
+                            <span class="text-[10px] text-slate-500 font-mono">${layer.hex.toUpperCase()}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <div class="flex flex-col gap-1 mr-2">
+                            <button class="text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed move-btn transition-colors" data-index="${i}" data-dir="1" title="Trazer para Frente" ${i === State.layers.length - 1 ? 'disabled' : ''}>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                            </button>
+                            <button class="text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed move-btn transition-colors" data-index="${i}" data-dir="-1" title="Enviar para o Fundo" ${i === 0 ? 'disabled' : ''}>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                        </div>
+
+                        <label class="relative inline-flex items-center cursor-pointer" title="Mostrar/Ocultar">
+                            <input type="checkbox" ${layer.visible ? 'checked' : ''} class="sr-only peer toggle-vis" data-index="${i}">
+                            <div class="w-8 h-4 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-500"></div>
+                        </label>
+                    </div>
+                `;
+                D.layersList.appendChild(div);
+            }
+
+            bindLayerEvents();
+            checkMergeStatus();
+        }
+
+        function bindLayerEvents() {
+            document.querySelectorAll('.toggle-vis').forEach(toggle => {
+                toggle.addEventListener('change', (e) => {
+                    const idx = parseInt(e.target.getAttribute('data-index'));
+                    State.layers[idx].visible = e.target.checked;
+                    if(State.layers[idx].groupEl) {
+                        State.layers[idx].groupEl.style.display = State.layers[idx].visible ? 'inline' : 'none';
+                    }
+                    renderLayersUI();
+                });
+            });
+
+            document.querySelectorAll('.layer-checkbox').forEach(chk => {
+                chk.addEventListener('change', (e) => {
+                    const idx = parseInt(e.target.getAttribute('data-index'));
+                    State.layers[idx].selected = e.target.checked;
+                    renderLayersUI(); 
+                });
+            });
+
+            document.querySelectorAll('.move-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const btnEl = e.target.closest('button');
+                    if(btnEl.disabled) return;
+                    const idx = parseInt(btnEl.getAttribute('data-index'));
+                    const dir = parseInt(btnEl.getAttribute('data-dir'));
+                    
+                    const newIdx = idx + dir;
+                    if(newIdx >= 0 && newIdx < State.layers.length) {
+                        const temp = State.layers[idx];
+                        State.layers[idx] = State.layers[newIdx];
+                        State.layers[newIdx] = temp;
+                        
+                        syncSvgOrderToState();
+                        renderLayersUI();
+                    }
+                });
+            });
+        }
+
+        function syncSvgOrderToState() {
+            State.layers.forEach(layer => {
+                if(layer.groupEl) {
+                    State.svgElement.appendChild(layer.groupEl);
+                }
+            });
+        }
+
+        function checkMergeStatus() {
+            const selectedCount = State.layers.filter(l => l.selected).length;
+            D.mergeBtn.disabled = selectedCount < 2;
+        }
+
+        D.mergeBtn.addEventListener('click', () => {
+            const selectedLayers = State.layers.filter(l => l.selected);
+            if (selectedLayers.length < 2) return;
+
+            D.mergeColorOptions.innerHTML = '';
+            State.selectedColorForMerge = null;
+            D.confirmMergeBtn.disabled = true;
+
+            selectedLayers.forEach(layer => {
+                const btn = document.createElement('button');
+                btn.className = `w-12 h-12 rounded-full border-4 shadow-md transition-transform transform hover:scale-110 flex items-center justify-center relative`;
+                btn.style.backgroundColor = layer.hex;
+                btn.style.borderColor = 'transparent';
+                
+                btn.addEventListener('click', () => {
+                    Array.from(D.mergeColorOptions.children).forEach(c => {
+                        c.style.borderColor = 'transparent';
+                        c.innerHTML = '';
+                    });
+                    btn.style.borderColor = '#ffffff';
+                    btn.innerHTML = `<svg class="w-6 h-6 text-white drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+                    State.selectedColorForMerge = layer.hex;
+                    D.confirmMergeBtn.disabled = false;
+                });
+
+                D.mergeColorOptions.appendChild(btn);
+            });
+
+            D.mergeModal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                D.mergeModal.classList.remove('opacity-0');
+                D.mergeModalContent.classList.remove('scale-95');
             });
         });
 
-        // Efeito de Scroll no Header
-        const header = document.getElementById('main-header');
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 50) {
-                header.classList.add('bg-stone-950/95', 'shadow-lg', 'backdrop-blur-sm', 'py-3');
-                header.classList.remove('bg-transparent', 'py-5');
-            } else {
-                header.classList.remove('bg-stone-950/95', 'shadow-lg', 'backdrop-blur-sm', 'py-3');
-                header.classList.add('bg-transparent', 'py-5');
+        function closeMergeModal() {
+            D.mergeModal.classList.add('opacity-0');
+            D.mergeModalContent.classList.add('scale-95');
+            setTimeout(() => { D.mergeModal.classList.add('hidden'); }, 300);
+        }
+
+        D.cancelMergeBtn.addEventListener('click', closeMergeModal);
+
+        D.confirmMergeBtn.addEventListener('click', () => {
+            if(!State.selectedColorForMerge) return;
+
+            const selectedLayers = State.layers.filter(l => l.selected);
+            const baseLayer = selectedLayers[0]; 
+            
+            baseLayer.hex = State.selectedColorForMerge;
+            baseLayer.name = 'Camada Mesclada';
+            
+            selectedLayers.forEach(layer => {
+                const paths = Array.from(layer.groupEl.querySelectorAll('path'));
+                paths.forEach(path => {
+                    path.setAttribute('fill', State.selectedColorForMerge);
+                    if (layer !== baseLayer) {
+                        baseLayer.groupEl.appendChild(path);
+                    }
+                });
+            });
+
+            for (let i = 1; i < selectedLayers.length; i++) {
+                const l = selectedLayers[i];
+                if(l.groupEl && l.groupEl.parentNode) l.groupEl.parentNode.removeChild(l.groupEl);
+                State.layers = State.layers.filter(x => x !== l);
             }
+
+            baseLayer.selected = false;
+
+            closeMergeModal();
+            syncSvgOrderToState();
+            renderLayersUI();
+            showAlert('Camadas mescladas com sucesso!', 'success');
+        });
+
+        async function runProcessing() {
+            if (!State.imageData || State.isProcessing) return;
+            State.isProcessing = true;
+            
+            D.loadingOverlay.classList.remove('hidden');
+            D.resultCard.classList.remove('hidden');
+            D.emptyState.classList.add('hidden');
+            D.layersPanel.classList.add('hidden');
+            
+            try {
+                await loadDependencies();
+                
+                const numColors = parseInt(D.colorSlider.value, 10);
+                const isSmooth = D.smoothToggle.checked;
+
+                D.loadingText.textContent = "Extraindo paleta com alto contraste (preservando detalhes)...";
+                await new Promise(r => setTimeout(r, 50)); 
+                
+                const customPalette = extractCustomPalette(State.imageData, numColors);
+                
+                D.loadingText.textContent = isSmooth ? "Vetorizando (Modo Suave)..." : "Vetorizando (Modo Preciso)...";
+                await new Promise(r => setTimeout(r, 50));
+
+                const options = {
+                    numberofcolors: numColors,
+                    pal: customPalette, 
+                    colorquantcycles: 4, 
+                    mincolorratio: 0, 
+                    strokewidth: 0,
+                    viewbox: true,
+                    scale: 1, 
+                    roundcoords: 1, 
+                    blurradius: isSmooth ? 2 : 0, 
+                    blurdelta: isSmooth ? 20 : 0,
+                    ltres: isSmooth ? 1.5 : 0.05, 
+                    qtres: isSmooth ? 1.5 : 0.05, 
+                    pathomit: 0 
+                };
+
+                const rawSvgString = window.ImageTracer.imagedataToSVG(State.imageData, options);
+
+                D.loadingText.textContent = "Montando hierarquia de camadas...";
+                await new Promise(r => setTimeout(r, 50));
+
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(rawSvgString, "image/svg+xml");
+                const allPaths = Array.from(doc.querySelectorAll("path"));
+
+                const finalSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                finalSvg.setAttribute("viewBox", `0 0 ${State.imageData.width} ${State.imageData.height}`);
+                finalSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+                finalSvg.setAttribute("width", "100%");
+                finalSvg.setAttribute("height", "100%");
+
+                State.layers = []; 
+                const layerMap = new Map();
+
+                allPaths.forEach(path => {
+                    let fillAttr = path.getAttribute("fill");
+                    if (!fillAttr) return;
+                    
+                    let rgbHex = fillAttr;
+                    if (fillAttr.startsWith('rgb')) {
+                        const m = fillAttr.match(/\d+/g);
+                        if(m && m.length >= 3) {
+                            rgbHex = '#' + m.slice(0,3).map(x => parseInt(x).toString(16).padStart(2, '0')).join('');
+                        }
+                    }
+                    rgbHex = rgbHex.toLowerCase();
+
+                    if (!layerMap.has(rgbHex)) {
+                        const layerId = `layer-${Date.now()}-${layerMap.size}`;
+                        const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                        group.setAttribute("id", layerId);
+                        layerMap.set(rgbHex, {
+                            id: layerId,
+                            hex: rgbHex,
+                            groupEl: group,
+                            area: 0
+                        });
+                    }
+                    
+                    const layerData = layerMap.get(rgbHex);
+                    const clone = path.cloneNode(true);
+                    clone.setAttribute("fill", rgbHex);
+                    layerData.groupEl.appendChild(clone);
+                    
+                    const d = clone.getAttribute('d');
+                    layerData.area += d ? d.length : 0;
+                });
+
+                const sortedLayers = Array.from(layerMap.values()).sort((a, b) => b.area - a.area);
+
+                sortedLayers.forEach((layerData, index) => {
+                    finalSvg.appendChild(layerData.groupEl);
+                    State.layers.push({
+                        id: layerData.id,
+                        name: `Camada ${index + 1}`,
+                        hex: layerData.hex,
+                        groupEl: layerData.groupEl,
+                        visible: true,
+                        selected: false
+                    });
+                });
+
+                D.svgWrapper.innerHTML = '';
+                D.svgWrapper.appendChild(finalSvg);
+                State.svgElement = finalSvg;
+                
+                renderLayersUI();
+                D.layersPanel.classList.remove('hidden');
+
+                showAlert('Vetorização concluída com sucesso!', 'success');
+
+            } catch (err) {
+                console.error(err);
+                showAlert('Erro ao processar imagem. Tente novamente.');
+                D.resultCard.classList.add('hidden');
+                D.emptyState.classList.remove('hidden');
+            } finally {
+                D.loadingOverlay.classList.add('hidden');
+                State.isProcessing = false;
+            }
+        }
+
+        function handleImageLoad(src) {
+            const img = new Image();
+            img.onload = () => {
+                const maxDim = 1200;
+                let w = img.width;
+                let h = img.height;
+                if (w > maxDim || h > maxDim) {
+                    const ratio = Math.min(maxDim / w, maxDim / h);
+                    w = Math.round(w * ratio);
+                    h = Math.round(h * ratio);
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                
+                ctx.imageSmoothingEnabled = false; 
+                ctx.drawImage(img, 0, 0, w, h);
+                
+                State.imageData = ctx.getImageData(0, 0, w, h);
+                
+                D.originalImage.src = src;
+                D.originalPreviewContainer.classList.remove('hidden');
+                D.controlsPanel.classList.remove('hidden');
+                D.uploadBox.classList.add('hidden');
+                
+                runProcessing(); 
+            };
+            img.onerror = () => showAlert('Arquivo de imagem inválido.');
+            img.src = src;
+        }
+
+        function handleFiles(files) {
+            if (files.length === 0) return;
+            const file = files[0];
+            if (!file.type.startsWith('image/')) {
+                showAlert('Por favor, envie um arquivo PNG ou JPG válido.');
+                return;
+            }
+            const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
+            D.filenameInput.value = `${nameWithoutExt}-vetorizado`;
+
+            const reader = new FileReader();
+            reader.onload = (e) => handleImageLoad(e.target.result);
+            reader.readAsDataURL(file);
+        }
+
+        D.uploadBox.addEventListener('click', () => D.fileInput.click());
+        D.fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+        
+        D.uploadBox.addEventListener('dragover', (e) => { e.preventDefault(); D.uploadBox.classList.add('dragover'); });
+        D.uploadBox.addEventListener('dragleave', (e) => { e.preventDefault(); D.uploadBox.classList.remove('dragover'); });
+        D.uploadBox.addEventListener('drop', (e) => {
+            e.preventDefault();
+            D.uploadBox.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        D.colorSlider.addEventListener('input', (e) => { D.colorValue.textContent = e.target.value; });
+        D.processBtn.addEventListener('click', runProcessing);
+
+        D.downloadBtn.addEventListener('click', () => {
+            if (!State.svgElement) return;
+            
+            const svgClone = State.svgElement.cloneNode(true);
+            
+            State.layers.forEach(l => {
+                if(!l.visible) {
+                    const hiddenGroup = svgClone.getElementById(l.id);
+                    if(hiddenGroup) hiddenGroup.remove();
+                }
+            });
+            
+            const serializer = new XMLSerializer();
+            let source = serializer.serializeToString(svgClone);
+            if (!source.match(/^<\?xml/)) {
+                source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
+            }
+
+            const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+            
+            let rawFilename = D.filenameInput.value.trim();
+            if(!rawFilename) rawFilename = "silk-vector-camadas";
+            if(!rawFilename.endsWith('.svg')) rawFilename += '.svg';
+            
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = rawFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         });
     </script>
 </body>
